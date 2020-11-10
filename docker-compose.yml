@@ -1,0 +1,7 @@
+version: "3.7"
+services:
+  o2qa:
+    build: .
+    volumes:
+      - ./O2SingleTrackQA/:/O2SingleTrackQA/
+    tty: true
