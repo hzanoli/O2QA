@@ -1,19 +1,20 @@
 import argparse
 import os
+import os.path
 import pathlib
 
-from file_utils import discover_histograms, discover_categories
+from file_utils import discover_histograms, discover_categories, HistogramInfo
 from plot_mpl import plot_1d_mpl
 from plot_root import plot_1d_root, profile_histogram_root
 
 
-def get_histogram(input_file, category_folder, histogram_name, backend='root'):
+def get_histogram(input_file, sub_folders, histogram_name, backend='root'):
     """ Reads an histogram located in input_file. It must be in a ROOT.TDirectory called category_folder and be called
     histogram_name.
 
     Args:
         input_file: the name of the ROOT file with the histogram.
-        category_folder: the ROOT.TDirectory that the histogram is in.
+        sub_folders: the chain of ROOT.TDirectory that the histogram is in.
         histogram_name: name of the histogram in the folder.
         backend: if 'root', the histogram will be read using ROOT. If 'python', uproot will be used.
     Returns:
@@ -23,10 +24,16 @@ def get_histogram(input_file, category_folder, histogram_name, backend='root'):
         import ROOT
         ROOT.TH1.AddDirectory(False)
         file = ROOT.TFile(input_file)
-        return file.Get(category_folder).Get(histogram_name).Clone()
+
+        folder = file
+        for sub_folder in sub_folders:
+            if sub_folder is not None:
+                folder = folder.Get(sub_folder)
+
+        return folder.Get(histogram_name).Clone()
     else:
         import uproot as up
-        return up.open(input_file)[category_folder + '/' + histogram_name]
+        return up.open(input_file)['/'.join(sub_folders) + '/' + histogram_name]
 
 
 def _validate_size(histograms, attribute):
@@ -37,7 +44,7 @@ def _validate_size(histograms, attribute):
 
 
 def plot_1d(histograms_to_plot, normalize=False, plot_errors=True, backend='root', labels=None, colors=None,
-            draw_option=''):
+            draw_option='', plot_ratio=False):
     """Plot a list of histograms to a ROOT.Canvas or matplotlib.Axes.
 
     Args:
@@ -60,7 +67,7 @@ def plot_1d(histograms_to_plot, normalize=False, plot_errors=True, backend='root
     _validate_size(histograms_to_plot, colors)
 
     if backend == 'root':
-        return plot_1d_root(histograms_to_plot, draw_option, labels, colors, normalize, plot_errors)
+        return plot_1d_root(histograms_to_plot, draw_option, labels, colors, normalize, plot_errors, plot_ratio)
     elif backend == 'python':
         return plot_1d_mpl(histograms_to_plot, draw_option, labels, colors, normalize, plot_errors)
 
@@ -87,9 +94,13 @@ def plot_profile(*histograms, draw_option='', axis='x', **kwargs):
     return plot_1d(profiles, draw_option=draw_option, **kwargs)
 
 
-def save(info, canvas_or_ax, output_directory, suffix=''):
+def save(info: HistogramInfo, canvas_or_ax, base_output_dir, suffix=''):
     """Save a ROOT.TCanvas or a matplotplib Axes into an pdf file."""
-    output_file = output_directory + "/" + info.category + "/" + info.name + suffix + '.pdf'
+
+    output_file = base_output_dir + '/' + '/'.join(info.path) + '/' + info.name + suffix + '.pdf'
+
+    output_dir = os.path.dirname(output_file)
+    os.makedirs(output_dir, exist_ok=True)
 
     try:
         canvas_or_ax.SaveAs(output_file)
@@ -100,21 +111,20 @@ def save(info, canvas_or_ax, output_directory, suffix=''):
 
 
 def _check_file_saved(file):
+    """Checks if file exists.
+
+    Raises:
+        FileNotFoundError is file does not exist.
+    """
     file_path = pathlib.Path(file)
     if not file_path.is_file():
-        raise RuntimeError("It was not possible to save the file: " + file)
+        raise FileNotFoundError("It was not possible to save the file: " + file)
 
 
 def plot_histograms(file_name, output_dir, normalize, backend):
     histograms_info = discover_histograms(file_name)
 
-    # Create output folders
-    os.makedirs(output_dir, exist_ok=True)
-
-    for category in discover_categories(file_name):
-        os.makedirs(output_dir + "/" + category, exist_ok=True)
-
-    histograms = {h: get_histogram(file_name, h.category, h.name, backend) for h in histograms_info}
+    histograms = {h: get_histogram(file_name, h.path, h.name, backend) for h in histograms_info}
     histograms_1d_keys = [x for x in histograms.keys() if x.root_class.startswith('TH1')]
     histograms_2d_keys = [x for x in histograms.keys() if x.root_class.startswith('TH2')]
 
@@ -137,7 +147,7 @@ def plot_histograms(file_name, output_dir, normalize, backend):
 
 def plot():
     """Entrypoint function to parse the arguments and make plots of single datasets. """
-    parser = argparse.ArgumentParser('Plotting for the single-track QA for O2')
+    parser = argparse.ArgumentParser(description='Plots all the histogram from a file into PDF.')
     parser.add_argument('file', help='Location of the analysis results file to be plotted')
     parser.add_argument('--output', '-o',
                         help='Location to save the produced files',
@@ -145,7 +155,7 @@ def plot():
     parser.add_argument('--normalize', '-n', help='Normalize histograms by the integral.',
                         action='store_true',
                         default=False)
-    parser.add_argument('--python', '-p', help='Use the pure python interface instead of ROOT.',
+    parser.add_argument('--python', '-p', help='Use the pure python interface instead of ROOT (in test).',
                         action='store_true',
                         default=False)
 

@@ -9,4 +9,4 @@ RUN pip3 install -r requirements.txt
 COPY O2SingleTrackQA /O2SingleTrackQA
 
 WORKDIR /O2SingleTrackQA
-#RUN pip3 install -e .
+RUN pip3 install -e .
