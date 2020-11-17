@@ -3,9 +3,11 @@ import os
 import os.path
 import pathlib
 
-from file_utils import discover_histograms, discover_categories, HistogramInfo
-from plot_mpl import plot_1d_mpl
-from plot_root import plot_1d_root, profile_histogram_root
+from o2qaplots.file_utils import discover_histograms, HistogramInfo
+from o2qaplots.plot_mpl import plot_1d_mpl
+from o2qaplots.plot_root import plot_1d_root, profile_histogram_root
+
+parser_description = 'Plots all the histogram from a file into PDF.'
 
 
 def get_histogram(input_file, sub_folders, histogram_name, backend='root'):
@@ -145,9 +147,21 @@ def plot_histograms(file_name, output_dir, normalize, backend):
         save(info, canvas, output_dir, '_profile')
 
 
-def plot():
+def plot(args=None):
     """Entrypoint function to parse the arguments and make plots of single datasets. """
-    parser = argparse.ArgumentParser(description='Plots all the histogram from a file into PDF.')
+    if args is None:
+        main_parser = argparse.ArgumentParser(description=parser_description)
+        add_parser_options(main_parser)
+        args = main_parser.parse_args()
+
+    backend_ = 'root'
+    if args.python:
+        backend_ = 'python'
+
+    plot_histograms(args.file, args.output, args.normalize, backend_)
+
+
+def add_parser_options(parser):
     parser.add_argument('file', help='Location of the analysis results file to be plotted')
     parser.add_argument('--output', '-o',
                         help='Location to save the produced files',
@@ -158,14 +172,6 @@ def plot():
     parser.add_argument('--python', '-p', help='Use the pure python interface instead of ROOT (in test).',
                         action='store_true',
                         default=False)
-
-    args = parser.parse_args()
-    backend_ = 'root'
-
-    if args.python:
-        backend_ = 'python'
-
-    plot_histograms(args.file, args.output, args.normalize, backend_)
 
 
 if __name__ == '__main__':

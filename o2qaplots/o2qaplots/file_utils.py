@@ -2,9 +2,10 @@ from collections import namedtuple
 
 import ROOT
 
+
 class HistogramInfo(namedtuple('HistogramInfoBase', ['path', 'name', 'root_class'])):
     def __hash__(self):
-        return hash('/'.join(self.path) + '/'+ self.name)
+        return hash('/'.join(self.path) + '/' + self.name)
 
 
 def is_root_histogram(class_name: str):
@@ -27,12 +28,12 @@ def discover_histograms(file_name):
     file_iterator = ROOT.TIter(file.GetListOfKeys())
     histograms = list()
 
-
     path = []
     it = file_iterator
     loop_list(path, it, histograms, file)
 
     return histograms
+
 
 def loop_list(path, it, histograms, directory):
     for key in it:
@@ -44,7 +45,6 @@ def loop_list(path, it, histograms, directory):
             new_directory = directory.Get(key.GetName())
             iterator_dir = ROOT.TIter(new_directory.GetListOfKeys())
             loop_list(new_path, iterator_dir, histograms, new_directory)
-
 
     # for category_key in file_iterator:
     #     category = file.Get(category_key.GetName())

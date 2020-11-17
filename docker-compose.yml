@@ -1,7 +1,17 @@
 version: "3.7"
+
 services:
-  o2qa:
-    build: .
+
+  plotting:
+    build:
+      context: o2qaplots
     volumes:
-      - ./O2SingleTrackQA/:/O2SingleTrackQA/
+      - ./o2qaplots:/o2qaplots/
+    tty: true
+
+  alice3data:
+    build:
+      context: alice3data
+    volumes:
+      - ./alice3data:/alice3data
     tty: true

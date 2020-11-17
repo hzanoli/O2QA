@@ -3,7 +3,7 @@ def _set_root_global_style():
     import ROOT
     ROOT.gROOT.ForceStyle(True)
     ROOT.gStyle.SetOptStat(0)
-    #ROOT.gROOT.SetStyle('ATLAS')
+    ROOT.gROOT.SetStyle('ATLAS')
 
 
 def plot_1d_root(histograms_to_plot, draw_option='', labels=None, colors=None, normalize=False,
