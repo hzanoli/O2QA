@@ -10,8 +10,6 @@ setup(
     author_email='hzanoli@gmail.com',
     description="Plotting tools for the ALICE O2 quality assurance",
     entry_points={'console_scripts':
-                      ['plot-all = o2qaplots.plot:plot',
-                       'compare-plots=o2qaplots.compare:compare',
-                       'o2qa=o2qaplots.cli:cli']},
+                      ['o2qa=o2qaplots.cli:cli']},
     install_requires=["numpy", "matplotlib", "seaborn", "pandas", "uproot"]
 )

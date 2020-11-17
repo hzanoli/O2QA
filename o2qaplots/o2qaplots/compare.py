@@ -51,6 +51,6 @@ if __name__ == '__main__':
 
     parser_main = argparse.ArgumentParser(description=parser_description)
     add_parser_options(parser_main)
-    args_main= parser_main.parse_args()
+    args_main = parser_main.parse_args()
 
     compare(args_main)
