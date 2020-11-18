@@ -1,0 +1,55 @@
+{
+  "numberOfTracks": {
+    "x_axis": {
+      "view_range": [
+        0,
+        200
+      ]
+    }
+  },
+  "pt": {
+    "y_axis": {
+      "log": true
+    }
+  },
+  "ptResolution" : {
+    "x_axis": {
+      "view_range": [
+        -0.2,
+        0.2
+      ]}
+  },
+  "ptResolutionVsPt": {
+    "x_axis": {
+      "log": true
+    }
+  },
+  "ptDiffMCRec": {
+    "x_axis": {
+      "view_range": [
+        -0.1,
+        0.1
+      ]
+    }
+  },
+  "impactParameterRPhiVsPt": {
+    "x_axis": {
+      "log": true
+    }
+  },
+  "impactParameterErrorRPhiVsPt": {
+    "x_axis": {
+      "log": true
+    }
+  },
+  "impactParameterZVsPt": {
+    "x_axis": {
+      "log": true
+    }
+  },
+  "impactParameterErrorZVsPt": {
+    "x_axis": {
+      "log": true
+    }
+  }
+}

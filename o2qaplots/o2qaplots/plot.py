@@ -7,6 +7,8 @@ from o2qaplots.file_utils import discover_histograms, HistogramInfo
 from o2qaplots.plot_mpl import plot_1d_mpl
 from o2qaplots.plot_root import plot_1d_root, profile_histogram_root
 
+from o2qaplots.config import JsonConfig, PlotConfig
+
 parser_description = 'Plots all the histogram from a file into PDF.'
 
 
@@ -46,7 +48,7 @@ def _validate_size(histograms, attribute):
 
 
 def plot_1d(histograms_to_plot, normalize=False, plot_errors=True, backend='root', labels=None, colors=None,
-            draw_option='', plot_ratio=False):
+            draw_option='', plot_ratio=False, plot_config: PlotConfig=None):
     """Plot a list of histograms to a ROOT.Canvas or matplotlib.Axes.
 
     Args:
@@ -69,7 +71,9 @@ def plot_1d(histograms_to_plot, normalize=False, plot_errors=True, backend='root
     _validate_size(histograms_to_plot, colors)
 
     if backend == 'root':
-        return plot_1d_root(histograms_to_plot, draw_option, labels, colors, normalize, plot_errors, plot_ratio)
+        return plot_1d_root(histograms_to_plot, draw_option, labels, colors, normalize, plot_errors, plot_ratio,
+                            plot_config.x_axis.view_range, plot_config.y_axis.view_range, plot_config.x_axis.log,
+                            plot_config.y_axis.log)
     elif backend == 'python':
         return plot_1d_mpl(histograms_to_plot, draw_option, labels, colors, normalize, plot_errors)
 
@@ -123,19 +127,22 @@ def _check_file_saved(file):
         raise FileNotFoundError("It was not possible to save the file: " + file)
 
 
-def plot_histograms(file_name, output_dir, normalize, backend):
+def plot_histograms(file_name, output_dir, normalize, backend,
+                    plot_config_file=os.path.dirname(os.path.abspath(__file__)) + '/config/qa_plot_default.json'):
+    json_config = JsonConfig(plot_config_file)
     histograms_info = discover_histograms(file_name)
 
     histograms = {h: get_histogram(file_name, h.path, h.name, backend) for h in histograms_info}
     histograms_1d_keys = [x for x in histograms.keys() if x.root_class.startswith('TH1')]
     histograms_2d_keys = [x for x in histograms.keys() if x.root_class.startswith('TH2')]
 
-    plot_hist_1d = {info: plot_1d([histograms[info]], normalize, False, backend)
+    plot_hist_1d = {info: plot_1d([histograms[info]], normalize, False, backend, plot_config=json_config.get(info.name))
                     for info in histograms_1d_keys}
 
     plot_hist_2d = {info: plot_2d(histograms[info]) for info in histograms_2d_keys}
 
-    plot_hist_2d_profile = {info: plot_profile(histograms[info], axis='x') for info in histograms_2d_keys}
+    plot_hist_2d_profile = {info: plot_profile(histograms[info], axis='x', plot_config=json_config.get(info.name))
+                            for info in histograms_2d_keys}
 
     for info, canvas in plot_hist_1d.items():
         save(info, canvas, output_dir)

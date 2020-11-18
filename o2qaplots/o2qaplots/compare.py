@@ -1,13 +1,20 @@
 import argparse
+import os
 
 import ROOT
 
 from o2qaplots.plot import discover_histograms, plot_1d, plot_profile, get_histogram, save
 
 parser_description = 'Compare the results of two files'
+from o2qaplots.config import JsonConfig
 
 
-def compare_histograms(file_name_a, file_name_b, output_dir, normalize, label_legend, ratio):
+def compare_histograms(file_name_a, file_name_b, output_dir, normalize, label_legend, ratio,
+                       plot_config_file=os.path.dirname(os.path.abspath(__file__)) + '/config/qa_plot_default.json'):
+    print(plot_config_file)
+
+    json_config = JsonConfig(plot_config_file)
+
     histograms_info = discover_histograms(file_name_a)
 
     histograms_a = {h: get_histogram(file_name_a, h.path, h.name) for h in histograms_info}
@@ -19,10 +26,13 @@ def compare_histograms(file_name_a, file_name_b, output_dir, normalize, label_le
     colors = [ROOT.kMagenta, ROOT.kBlue]
 
     plot_hist_1d = {info: plot_1d([histograms_a[info], histograms_b[info]], normalize=normalize, labels=label_legend,
-                                  colors=colors, plot_errors=False, plot_ratio=False) for info in histograms_1d_keys}
+                                  colors=colors, plot_errors=False, plot_ratio=False,
+                                  plot_config=json_config.get(info.name))
+                    for info in histograms_1d_keys}
 
     plot_hist_2d_profile = {info: plot_profile(histograms_a[info], histograms_b[info], axis='x',
-                                               labels=label_legend, colors=colors, plot_errors=True, plot_ratio=False)
+                                               labels=label_legend, colors=colors, plot_errors=True, plot_ratio=False,
+                                               plot_config=json_config.get(info.name))
                             for info in histograms_2d_keys}
 
     for info, canvas in plot_hist_1d.items():

@@ -1,13 +1,16 @@
 def _set_root_global_style():
     """Set the global style for the plots"""
     import ROOT
-    ROOT.gROOT.ForceStyle(True)
+
     ROOT.gStyle.SetOptStat(0)
     ROOT.gROOT.SetStyle('ATLAS')
+    ROOT.gStyle.SetMarkerStyle(ROOT.kFullSquare)
+    ROOT.gROOT.ForceStyle()
 
 
 def plot_1d_root(histograms_to_plot, draw_option='', labels=None, colors=None, normalize=False,
-                 plot_errors=False, plot_ratio=False):
+                 plot_errors=False, plot_ratio=False,
+                 x_range=None, y_range=None, log_x=False, log_y=False):
     """ Plots an histogram from ROOT using ROOT.
     Args:
         histograms_to_plot: histogram object, read by ROOT, to be plotted.
@@ -18,14 +21,14 @@ def plot_1d_root(histograms_to_plot, draw_option='', labels=None, colors=None, n
         plot_errors: whether to plot or not the uncertainties in x and y
         plot_ratio: Works only for 2 histograms. If true, a ratio between the two plots is included.
     Returns:
-        ax: the Axes with the all the plotted histograms.
+        canvas: the canvas with the all the plotted histograms.
     """
     import ROOT
 
     if plot_ratio and len(histograms_to_plot) != 2:
         raise ValueError("Ratio plots can only be used if two histograms are passed.")
 
-    _prepare_root_histograms(colors, histograms_to_plot, labels, normalize)
+    _prepare_root_histograms(colors, histograms_to_plot, labels, normalize, x_range, y_range)
 
     common_draw_opt = ""
     if colors is None:
@@ -46,24 +49,43 @@ def plot_1d_root(histograms_to_plot, draw_option='', labels=None, colors=None, n
         for h in histograms_to_plot[1:]:
             h.Draw(draw_option + "SAME" + common_draw_opt)
 
+    if log_x:
+        canvas.SetLogx()
+    if log_y:
+        canvas.SetLogy()
+
     if labels is not None:
         legend = canvas.BuildLegend()
         legend.SetLineWidth(0)
         legend.SetBorderSize(0)
+        legend.SetFillStyle(0)
 
     return canvas
 
 
-def _prepare_root_histograms(colors, histograms_to_plot, labels, normalize):
+def _prepare_root_histograms(colors, histograms_to_plot, labels, normalize, x_range, y_range):
     _set_root_global_style()
+
     if normalize:
         normalize_histograms(histograms_to_plot)
-    max_value, min_value = _get_histogram_ranges(histograms_to_plot)
-    for h in histograms_to_plot:
-        h.GetYaxis().SetRangeUser(min_value, 1.1 * max_value)
+
+    if y_range is not None:
+        for h in histograms_to_plot:
+            h.GetYaxis().SetRangeUser(*y_range)
+    else:
+        if len(histograms_to_plot) > 1:
+            max_value, min_value = _get_histogram_ranges(histograms_to_plot)
+            for h in histograms_to_plot:
+                h.GetYaxis().SetRangeUser(min_value, 1.1 * max_value)
+
+    if x_range is not None:
+        for h in histograms_to_plot:
+            h.GetXaxis().SetRangeUser(*x_range)
+
     if labels is not None:
         for h, label in zip(histograms_to_plot, labels):
             h.SetTitle(label)
+
     if colors is not None:
         for h, color in zip(histograms_to_plot, colors):
             h.SetLineColor(color)
@@ -78,13 +100,13 @@ def _get_histogram_ranges(histograms_to_plot):
 
 def normalize_histograms(histograms_to_plot):
     for h in histograms_to_plot:
-        h.GetYaxis().SetTitle('Relative Frequency')
-        h.Scale(1. / h.Integral())
-        if h.GetXaxis().GetTitle() == 'Track Multiplicity':
-            h.GetXaxis().SetRangeUser(0, 250)
+        if h.Integral() > 0:
+            h.GetYaxis().SetTitle('Relative Frequency')
+            h.Scale(1. / h.Integral())
 
 
 def profile_histogram_root(axis, h):
+    _set_root_global_style()
     if axis.lower() == 'x':
         profile = h.ProfileX()
         profile.GetYaxis().SetTitle('< ' + h.GetYaxis().GetTitle() + ' >')
